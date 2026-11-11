@@ -54,7 +54,7 @@
       "versioningTemplate": "{{#if versioning}}{{{versioning}}}{{else}}semver{{/if}}"
     },
     {
-      "description": "Pinned Python dependencies for the catalog / verify workflows (.github/requirements/verify.txt). Matches `dep==version` lines (hashes follow on the same line) so pinned PyPI packages stay current under the human-review gate below.",
+      "description": "Pinned Python dependencies for the catalog / verify workflows. The required validate check rejects stale hashes.",
       "customType": "regex",
       "managerFilePatterns": [
         "/\\.github/requirements/.*\\.txt$/"
@@ -75,31 +75,7 @@
   },
   "packageRules": [
     {
-      "matchManagers": [
-        "github-actions"
-      ],
-      "groupName": "github-actions-non-major",
-      "matchUpdateTypes": [
-        "minor",
-        "patch",
-        "digest",
-        "pin",
-        "pinDigest"
-      ],
-      "description": "Never automerge GitHub Actions bumps: digest pinning blunts tag-rewriting but not a compromised release under a new SHA. Workflows here handle mergeraptor tokens, cosign signing, and packages:write, so every action update gets human review (mirrors the custom.regex gate below).",
-      "automerge": false
-    },
-    {
-      "matchManagers": [
-        "github-actions"
-      ],
-      "matchUpdateTypes": [
-        "major"
-      ],
-      "automerge": false
-    },
-    {
-      "description": "Upstream software pinned in BuildStream elements. Never automerge: the sha256/commit ref must be refreshed by `bst source track` (see .github/workflows/refresh-bst-refs.yml) and the image must pass `just verify` first.",
+      "description": "BuildStream source updates: refresh-bst-refs pushes updated source refs; required checks validate the PR, and Build images runs after merge. Hive review of Renovate updates is advisory.",
       "matchManagers": [
         "custom.regex"
       ],
@@ -114,7 +90,7 @@
       ]
     },
     {
-      "description": "Pinned PyPI packages in .github/requirements/*.txt. Never automerge: this manager rewrites only the `==` version, so the committed sha256 hashes go stale and `pip install --require-hashes --only-binary=:all:` rejects the bump. Regenerate the hashes before merging -- see docs/skills/ci-tooling/SKILL.md, 'Regenerating .github/requirements hashes'. `bst source track` is NOT involved.",
+      "description": "Pinned PyPI packages: Renovate changes versions but not hashes. The required validate check rejects stale hashes; regenerate them as described in docs/skills/ci-tooling/SKILL.md.",
       "matchManagers": [
         "custom.regex"
       ],
@@ -133,6 +109,26 @@
         "kubernetes/kubernetes"
       ],
       "ignoreUnstable": true
+    },
+    {
+      "description": "Renovate waits three days after a third-party GitHub Actions release before automerging; Hive's trusted-bot review remains advisory.",
+      "matchManagers": ["github-actions"],
+      "matchPackageNames": ["!/^(projectbluefin)\\//"],
+      "minimumReleaseAge": "3 days",
+      "automerge": true
+    },
+    {
+      "description": "Project Bluefin GitHub Actions updates can be automerged by Renovate immediately.",
+      "matchManagers": ["github-actions"],
+      "matchPackageNames": ["/^projectbluefin\\//"],
+      "minimumReleaseAge": null,
+      "automerge": true
+    },
+    {
+      "description": "Major GitHub Actions updates are not automerged by Renovate; Hive's trusted-bot review remains advisory.",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["major"],
+      "automerge": false
     }
   ]
 }

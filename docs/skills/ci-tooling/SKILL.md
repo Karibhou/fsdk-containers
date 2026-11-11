@@ -204,9 +204,10 @@ inside `oci-images.yml`'s verify job, which holds `packages: write`,
 hash is ever dropped.
 
 The `custom.regex` manager in `renovate.json` rewrites only the `==` version,
-never the hashes, so **every Renovate bump of this file arrives with stale
-hashes and a red install step**. That is pip failing closed, not a bug — but it
-means the reviewer regenerates before merging:
+never the hashes. The required `Build images / validate` check checks every
+requirements file with pip's hash enforcement and `--ignore-installed`, so a
+stale hash fails before a trusted bot can merge it. Regenerate the hashes and
+the complete dependency closure before merging:
 
 1. Re-resolve the transitive closure in a throwaway venv. A bump can add or
    drop a dependency and `--require-hashes` needs the *whole* closure:
