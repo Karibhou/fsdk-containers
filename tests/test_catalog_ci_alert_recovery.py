@@ -34,7 +34,7 @@ if args[0] == "api":
         if f.get("commit_error"):
             sys.exit(1)
         data = {"sha": f["main_sha"]}
-    elif endpoint.endswith("/actions/runs/123/jobs"):
+    elif endpoint.startswith("repos/projectbluefin/fsdk-containers/actions/runs/123/jobs"):
         if f.get("jobs_error"):
             sys.exit(1)
         data = {"jobs": f["jobs"]}
@@ -192,6 +192,25 @@ class AlertRecoveryTests(unittest.TestCase):
         self.assertEqual(len([call for call in calls if call[:2] == ["issue", "create"]]), 1)
         self.assertFalse(any(call[:2] == ["issue", "close"] for call in calls))
 
+    def test_cancelled_and_timed_out_runs_report_cancelled_node_job(self):
+        for conclusion in ("cancelled", "timed_out"):
+            with self.subTest(conclusion=conclusion):
+                self.event["conclusion"] = conclusion
+                self.data["issues"] = []
+                self.data["jobs"] = [{
+                    "name": "oci-images (node) / build (x86_64)",
+                    "html_url": "https://github.com/projectbluefin/fsdk-containers/actions/runs/42954535876/job/1",
+                    "conclusion": "cancelled",
+                }]
+                self.calls.unlink(missing_ok=True)
+                code, calls = self.exercise()
+                self.assertEqual(code, 0)
+                create = next(call for call in calls if call[:2] == ["issue", "create"])
+                body = create[create.index("--body") + 1]
+                self.assertIn("oci-images (node) / build (x86_64)", body)
+                self.assertIn("(cancelled)", body)
+                self.assertFalse(any(call[:2] == ["issue", "close"] for call in calls))
+
     def test_success_without_alert_does_not_create_one(self):
         self.data["issues"] = []
         code, calls = self.exercise()
@@ -206,7 +225,7 @@ class AlertRecoveryTests(unittest.TestCase):
         self.assertFalse(any(call[0] == "issue" for call in calls))
 
     def test_unrelated_runs_are_ignored(self):
-        for key, value in (("event", "pull_request"), ("head_branch", "other"), ("conclusion", "cancelled")):
+        for key, value in (("event", "pull_request"), ("head_branch", "other"), ("conclusion", "neutral")):
             with self.subTest(key=key):
                 original = self.event[key]
                 self.event[key] = value

@@ -25,6 +25,12 @@ metadata:
 - Debugging a CI failure in the build, verify, or manifest job
 - Adding images to the catalog, or changing how many jobs a run fans out into
 
+Slow OCI builds can consume nearly the entire three-hour budget in the build
+and verify step, leaving no time to publish. The OCI build job has a four-hour
+budget; GitHub-hosted jobs have a [six-hour maximum](https://docs.github.com/en/actions/reference/limits).
+The main-branch CI alert treats cancelled and timed-out runs as failures and
+fetches every jobs API page, so the alert can identify the interrupted job.
+
 ## When NOT to Use
 
 - Debugging a BST build failure (see `bump-fsdk-version.md`)

@@ -43,7 +43,8 @@ jobs:
           - arch: aarch64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 180
+    # Cold x86_64 builds can take almost three hours before publication.
+    timeout-minutes: 240
     permissions:
       contents: read
       packages: write
